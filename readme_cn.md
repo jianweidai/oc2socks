@@ -77,7 +77,7 @@
     docker run -d --name oc2socks \
         --cap-add=NET_ADMIN \
         --device=/dev/net/tun \
-        -p 1080:1080 \
+        -p 1180:1180 \
         -e VPN_SERVER="vpn.sjsu.edu" \
         -e VPN_PASSWORD="<在这里粘贴你的会话令牌>" \
         ghcr.io/seey6/oc2socks
@@ -99,7 +99,7 @@
     docker run -d --name oc-socks \
         --cap-add=NET_ADMIN \
         --device=/dev/net/tun \
-        -p 1080:1080 \
+        -p 1180:1180 \
         -e VPN_SERVER="vpn.sjsu.edu" \
         -e VPN_PASSWORD="<在这里粘贴你的会话令牌>" \
         oc-socks-gateway
@@ -110,7 +110,7 @@
 当容器成功运行后，一个 SOCKS5 代理就会在您的主机上可用。将您的应用程序或系统网络设置配置为使用此代理：
 
   * **代理服务器**: `127.0.0.1`
-  * **端口**: `1080` (或您在 `docker run` 中映射的主机端口)
+  * **端口**: `1180` (或您在 `docker run` 中映射的主机端口)
   * **类型**: SOCKS5
 
 -----
@@ -123,7 +123,7 @@
 | -------------------- | ---------------------------------------------- | ----------------------------- |
 | `VPN_SERVER`         | **(必需)** 您的 VPN 服务器地址。               | (无)                          |
 | `VPN_PASSWORD`       | **(必需)** 在第一步中获取的会话令牌。          | (无)                          |
-| `SOCKS_PORT`         | 容器内 SOCKS5 代理使用的端口。                 | `1080`                        |
+| `SOCKS_PORT`         | 容器内 SOCKS5 代理使用的端口。                 | `1180`                        |
 | `VPN_PROTOCOL`       | 使用的 VPN 协议 (例如 `anyconnect`, `gp`)。    | `anyconnect`                  |
 | `VPN_USER_AGENT`     | OpenConnect 客户端的 User-Agent 字符串。       | `AnyConnect Linux_64 4.7.00136` |
 | `VPN_VERSION_STRING` | OpenConnect 客户端的版本字符串。               | `4.7.00136`                   |

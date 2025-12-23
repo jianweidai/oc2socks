@@ -10,7 +10,7 @@ VPN_USER_AGENT=${VPN_USER_AGENT:-"AnyConnect Linux_64 4.7.00136"}
 VPN_VERSION_STRING=${VPN_VERSION_STRING:-"4.7.00136"}
 VPN_PROTOCOL=${VPN_PROTOCOL:-"anyconnect"} # 默认为 anyconnect, 可以是 gp, pulse 等
 
-SOCKS_PORT=${SOCKS_PORT:-"1080"}
+SOCKS_PORT=${SOCKS_PORT:-"1180"}
 
 # --- 进程管理 ---
 # 设置 trap 以在接收到 SIGTERM 或 SIGINT 时优雅地关闭子进程
