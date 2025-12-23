@@ -46,6 +46,7 @@ else
         --useragent="\"${VPN_USER_AGENT}\"" \
         --version-string="${VPN_VERSION_STRING}" \
         --interface=tunopen \
+        --script /bin/true \
         ${VPN_SERVER}
 fi
 
