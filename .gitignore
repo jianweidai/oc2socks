@@ -1,2 +1,23 @@
-venv
-__pycache__
+# 虚拟环境
+venv/
+.venv/
+
+# Python 缓存
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# 本地运行脚本与敏感信息
+sjsu_run.sh
+*.token
+*.cookie
+
+# IDE 与 编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 系统文件
+.DS_Store
+Thumbs.db
