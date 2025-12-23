@@ -36,7 +36,7 @@ def run(args):
             _run(args, cfg)
         )
     except KeyboardInterrupt:
-        logger.warn("CTRL-C pressed, exiting")
+        logger.warn("CTRL-C pressed, exiting  ")
         return 130
     except ValueError as e:
         msg, retval = e.args
