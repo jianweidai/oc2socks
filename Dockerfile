@@ -35,5 +35,8 @@ COPY templates/ /templates/
 # 创建数据目录用于持久化 Token
 RUN mkdir -p /data && chmod +x /start.sh
 
+# 暴露 SOCKS5 代理端口 (1180) 和管理后台端口 (8989)
+EXPOSE 1180 8989
+
 # 容器启动时执行的命令
 CMD ["/start.sh"]
