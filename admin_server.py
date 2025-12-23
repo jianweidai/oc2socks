@@ -86,7 +86,7 @@ def reconnect_api():
         version = os.environ.get('VPN_VERSION_STRING', '4.7.00136')
         protocol = os.environ.get('VPN_PROTOCOL', 'anyconnect')
 
-        cmd = f"echo '{new_token}' | openconnect -b --protocol={protocol} --cookie-on-stdin --useragent='{user_agent}' --version-string='{version}' --interface=tunopen {vpn_server}"
+        cmd = f"echo '{new_token}' | openconnect -b --protocol={protocol} --cookie-on-stdin --useragent='{user_agent}' --version-string='{version}' --interface=tunopen --script /bin/true {vpn_server}"
         subprocess.Popen(cmd, shell=True)
         
         return jsonify({"message": "重连指令已发出，请稍后刷新。"})
