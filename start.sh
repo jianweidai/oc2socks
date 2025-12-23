@@ -14,7 +14,7 @@ SOCKS_PORT=${SOCKS_PORT:-"1180"}
 
 # --- 进程管理 ---
 # 设置 trap 以在接收到 SIGTERM 或 SIGINT 时优雅地关闭子进程
-trap 'kill -TERM $PID1 $PID2' TERM INT
+trap 'kill -TERM $PID_ADMIN $PID_GOST' TERM INT
 
 # --- 启动 Admin Server (后台运行) ---
 echo "Starting Admin Server on port 8989..."
