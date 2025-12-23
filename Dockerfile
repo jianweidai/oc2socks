@@ -12,7 +12,12 @@ RUN apk update && \
     iproute2 \
     unzip \
     procps \
-    bash
+    bash \
+    python3 \
+    py3-pip
+
+# 安装 Flask 后端依赖
+RUN pip install --no-cache-dir --break-system-packages flask
 
 # 从 GitHub 下载并安装最新版的 gost
 # 注意：gost 的 linux_amd64 版本通常是静态链接的，因此可以在 Alpine (musl) 上运行。
@@ -22,9 +27,13 @@ RUN curl -L "https://github.com/ginuerzh/gost/releases/download/v${GOST_VERSION}
     mv gost /usr/local/bin/gost && \
     chmod +x /usr/local/bin/gost
 
-# 复制并设置启动脚本
+# 复制文件与模板
 COPY start.sh /start.sh
-RUN chmod +x /start.sh
+COPY admin_server.py /admin_server.py
+COPY templates/ /templates/
+
+# 创建数据目录用于持久化 Token
+RUN mkdir -p /data && chmod +x /start.sh
 
 # 容器启动时执行的命令
 CMD ["/start.sh"]
