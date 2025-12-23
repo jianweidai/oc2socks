@@ -39,6 +39,10 @@ def save_token(token):
         print(f"Error saving token: {e}")
         return False
 
+@app.route('/')
+def index():
+    return "oc2socks Admin Server is running. Please access /admin?key=YOUR_KEY", 200
+
 @app.route('/admin')
 def admin_page():
     key = request.args.get('key')
