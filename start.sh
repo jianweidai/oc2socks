@@ -12,8 +12,19 @@ VPN_PROTOCOL=${VPN_PROTOCOL:-"anyconnect"} # 默认为 anyconnect, 可以是 gp,
 
 SOCKS_PORT=${SOCKS_PORT:-"1180"}
 
+# --- 解析 VPN 服务器 IP 地址 ---
+# 在设置防火墙规则前，先解析 VPN 服务器的 IP，这样我们可以精确放行
+echo "Resolving VPN server IP address..."
+VPN_SERVER_IP=$(getent hosts "${VPN_SERVER}" | awk '{print $1}' | head -n1)
+if [ -z "$VPN_SERVER_IP" ]; then
+    echo "Warning: Could not resolve VPN server IP, falling back to allowing all 443 traffic for dial-up"
+    VPN_SERVER_IP=""
+fi
+echo "VPN Server: ${VPN_SERVER} -> IP: ${VPN_SERVER_IP:-'(unresolved)'}"
+
 # --- 安全：防止流量从 VPS 物理网卡泄露 ---
 echo "Configuring firewall rules for safety..."
+
 # 1. 允许所有的回环流量 (Loopback)
 iptables -A OUTPUT -o lo -j ACCEPT
 iptables -A INPUT -i lo -j ACCEPT
@@ -25,22 +36,32 @@ iptables -A INPUT -p tcp --dport 8989 -j ACCEPT
 # 3. 允许已经建立的连接 (Established/Related)
 iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 
-# 4. 允许向 VPN 服务器发送拨号请求 (通常是 UDP 或 TCP 443)
-# 注意：这里我们放行所有的 DNS 和 HTTPS 拨号基础流量，确保护拨号能成功
+# 4. 允许向 VPN 服务器发送拨号请求
+# 关键修改：只允许向 VPN 服务器 IP 的 443 端口发起连接，而不是所有 443 流量
+# 这样可以防止 gost 在 VPN 未连接时通过物理网卡泄露流量
 iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
 iptables -A OUTPUT -p tcp --dport 53 -j ACCEPT
-iptables -A OUTPUT -p tcp --dport 443 -j ACCEPT
+if [ -n "$VPN_SERVER_IP" ]; then
+    # 只允许到 VPN 服务器的 443 端口流量
+    iptables -A OUTPUT -p tcp -d "${VPN_SERVER_IP}" --dport 443 -j ACCEPT
+    echo "Firewall: Only allowing 443 traffic to VPN server IP: ${VPN_SERVER_IP}"
+else
+    # 如果解析失败，回退到允许所有 443（不推荐，但保证拨号能成功）
+    iptables -A OUTPUT -p tcp --dport 443 -j ACCEPT
+    echo "Warning: Allowing all 443 traffic (VPN IP resolution failed)"
+fi
 
-# 5. 允许所有通过 vpn 网卡 (tunopen) 的流量
+# 5. 允许所有通过 VPN 网卡 (tunopen) 的流量
 iptables -A OUTPUT -o tunopen -j ACCEPT
 
-# 6. 关键：禁止除上述规则外，所有从物理网卡 (eth0) 出去的流量
-# 这样如果 VPN 断了，gost 想走物理网卡出去也会被拦截
-# 我们不写死 eth0，而是写非 tunopen 的流量
+# 6. 关键：设置默认策略为 DROP
+# 这样如果 VPN 断了，gost 想走物理网卡出去会被拦截
 iptables -P OUTPUT DROP
-iptables -A OUTPUT -o tunopen -j ACCEPT # 再次确保 tunopen 是通 be 好的 (冗余保险)
+
 # 允许必要的 ICMP 排错
 iptables -A OUTPUT -p icmp -j ACCEPT
+
+echo "Firewall rules configured. VPN tunnel traffic allowed, physical NIC traffic blocked."
 
 # --- 进程管理 ---
 # 设置 trap 以在接收到 SIGTERM 或 SIGINT 时优雅地关闭子进程
