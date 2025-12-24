@@ -56,9 +56,8 @@ fi
 
 # --- 启动 gost ---
 echo "Starting gost on port ${SOCKS_PORT}..."
-# 启动 gost 时开启一个管理路径转发（可选，如果想共用端口）
-# 这里简单起见，gost 还是只做代理。用户可以通过 5000 端口访问后台。
-gost -L "socks5://:${SOCKS_PORT}" &
+# 启动 gost 时强制指定出口网卡为 tunopen，防止流量从 VPS 物理网卡泄露
+gost -L "socks5://:${SOCKS_PORT}?interface=tunopen" &
 PID_GOST=$!
 
 # 等待进程
