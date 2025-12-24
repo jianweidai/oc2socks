@@ -11,12 +11,20 @@ TOKEN_FILE = "/data/vpn.token"
 ADMIN_KEY = os.environ.get("ADMIN_KEY", "default_secret_key")
 
 def check_vpn_status():
-    """通过检查 tunopen 网络接口判断 VPN 是否在线"""
+    """判断 VPN 是否在线：
+    1. 检查 /sys/class/net/tunopen 接口是否存在
+    2. 辅助检查 openconnect 进程是否存在
+    """
+    iface_exists = os.path.exists("/sys/class/net/tunopen")
+    
+    # 额外检查：有些系统可能没有 sysfs，回退到进程检查
     try:
-        result = subprocess.run(["ip", "addr", "show", "tunopen"], capture_output=True, text=True)
-        return result.returncode == 0
+        proc_check = subprocess.run(["pgrep", "openconnect"], capture_output=True)
+        running = proc_check.returncode == 0
     except:
-        return False
+        running = iface_exists # 如果 pgrep 报错，就只信 iface
+
+    return iface_exists and running
 
 def get_current_token():
     """读取当前生效的 Token"""
@@ -92,6 +100,8 @@ def reconnect_api():
 
         cmd = f"echo '{new_token}' | openconnect -b --protocol={protocol} --cookie-on-stdin --useragent='{user_agent}' --version-string='{version}' --interface=tunopen --script /bin/true {vpn_server}"
         subprocess.Popen(cmd, shell=True)
+        # 等待一会并尝试手动激活网卡
+        subprocess.Popen("sleep 2 && ip link set tunopen up", shell=True)
         
         return jsonify({"message": "重连指令已发出，请稍后刷新。"})
     except Exception as e:
