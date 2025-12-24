@@ -38,7 +38,7 @@ iptables -A OUTPUT -o tunopen -j ACCEPT
 # 这样如果 VPN 断了，gost 想走物理网卡出去也会被拦截
 # 我们不写死 eth0，而是写非 tunopen 的流量
 iptables -P OUTPUT DROP
-iptables -A OUTPUT -o tunopen -j ACCEPT # 再次确保 tunopen 是通的 (冗余保险)
+iptables -A OUTPUT -o tunopen -j ACCEPT # 再次确保 tunopen 是通 be 好的 (冗余保险)
 # 允许必要的 ICMP 排错
 iptables -A OUTPUT -p icmp -j ACCEPT
 
@@ -86,12 +86,7 @@ fi
 
 # --- 启动 gost ---
 echo "Starting gost on port ${SOCKS_PORT}..."
-<<<<<<< Updated upstream
-# 启动 gost 时开启一个管理路径转发（可选，如果想共用端口）
-# 这里简单起见，gost 还是只做代理。用户可以通过 5000 端口访问后台。
-=======
 # 启动 gost
->>>>>>> Stashed changes
 gost -L "socks5://:${SOCKS_PORT}" &
 PID_GOST=$!
 
