@@ -14,7 +14,8 @@ RUN apk update && \
     procps \
     bash \
     python3 \
-    py3-pip
+    py3-pip \
+    iptables
 
 # 安装 Flask 后端依赖
 RUN pip install --no-cache-dir --break-system-packages flask
