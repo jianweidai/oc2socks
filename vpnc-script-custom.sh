@@ -110,12 +110,29 @@ case "$reason" in
             done
         fi
         
-        # CRITICAL: Add default route for all traffic through VPN interface
+        # CRITICAL: Replace default route to force all traffic through VPN interface
         # This makes gost able to route any destination through VPN
-        # We use a lower metric so it doesn't override the physical interface's default route
-        # for the container itself, but gost binds to tunopen so it will use this
-        ip route add default dev "$TUNDEV" metric 100 2>/dev/null || true
-        log "Added default route via $TUNDEV with metric 100"
+        
+        # Step 1: Save the original gateway for VPN server access
+        ORIGINAL_GW=$(ip route show default | grep -v tunopen | awk '{print $3}' | head -n1)
+        ORIGINAL_DEV=$(ip route show default | grep -v tunopen | awk '{print $5}' | head -n1)
+        log "Original gateway: $ORIGINAL_GW via $ORIGINAL_DEV"
+        
+        # Step 2: Add explicit route to VPN server through original gateway
+        # This ensures VPN tunnel traffic itself can still reach the VPN server
+        if [ -n "$VPNGATEWAY" ] && [ -n "$ORIGINAL_GW" ]; then
+            ip route add "$VPNGATEWAY/32" via "$ORIGINAL_GW" dev "$ORIGINAL_DEV" 2>/dev/null || true
+            log "Added explicit route: $VPNGATEWAY via $ORIGINAL_GW"
+        fi
+        
+        # Step 3: Delete old default route(s) through physical interface
+        # This is the key fix - remove competing routes
+        ip route del default via "$ORIGINAL_GW" 2>/dev/null || true
+        log "Deleted original default route via $ORIGINAL_GW"
+        
+        # Step 4: Add new default route through VPN tunnel
+        ip route add default dev "$TUNDEV" 2>/dev/null || true
+        log "Added default route via $TUNDEV (VPN tunnel)"
         
         # Configure MTU if provided
         if [ -n "$INTERNAL_IP4_MTU" ]; then
