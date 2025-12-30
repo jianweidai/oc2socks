@@ -134,6 +134,21 @@
             opacity: 0.8;
         }
 
+        .btn-danger {
+            background-color: var(--error-color);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 1rem;
+        }
+
+        .button-group button {
+            flex: 1;
+            margin-top: 0;
+        }
+
         .log-area {
             background: black;
             color: #00ff00;
@@ -177,7 +192,10 @@
             <input type="text" id="token-input" placeholder="粘贴获取到的 Token...">
         </div>
 
-        <button onclick="reconnect()">连接 / 重连</button>
+        <div class="button-group">
+            <button onclick="reconnect()">连接 / 重连</button>
+            <button class="btn-danger" onclick="disconnect()">断开连接</button>
+        </div>
 
         <div class="log-area" id="log-area">系统就绪，等待指令...</div>
     </div>
@@ -223,6 +241,29 @@
                 })
                 .catch(err => {
                     log.innerText += '\n连接异常: ' + err;
+                });
+        }
+
+        function disconnect() {
+            const log = document.getElementById('log-area');
+
+            if (!confirm('确定要断开 VPN 连接吗？')) {
+                return;
+            }
+
+            log.innerText += '\n[' + new Date().toLocaleTimeString() + '] 正在断开连接...';
+            fetch(`/api/disconnect?key=${key}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+                .then(res => res.json())
+                .then(data => {
+                    log.innerText += '\n' + (data.message || data.error);
+                    log.scrollTop = log.scrollHeight;
+                    setTimeout(updateStatus, 1000);
+                })
+                .catch(err => {
+                    log.innerText += '\n断开异常: ' + err;
                 });
         }
 

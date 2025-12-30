@@ -107,5 +107,27 @@ def reconnect_api():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/disconnect', methods=['POST'])
+def disconnect_api():
+    """断开 VPN 连接"""
+    key = request.args.get('key')
+    if key != ADMIN_KEY:
+        return jsonify({"error": "unauthorized"}), 403
+    
+    try:
+        # 杀死 openconnect 进程
+        result = subprocess.run(["pkill", "openconnect"], capture_output=True)
+        
+        if result.returncode == 0:
+            return jsonify({"message": "VPN 已断开连接。"})
+        else:
+            # pkill 返回非0可能是因为进程不存在
+            if check_vpn_status():
+                return jsonify({"error": "断开失败，请重试。"}), 500
+            else:
+                return jsonify({"message": "VPN 当前未连接。"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8989)
