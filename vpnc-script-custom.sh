@@ -125,12 +125,25 @@ case "$reason" in
             log "Added explicit route: $VPNGATEWAY via $ORIGINAL_GW"
         fi
         
-        # Step 3: Delete old default route(s) through physical interface
+        # Step 3: Preserve Docker bridge network route for admin server (port 8989)
+        # Without this, the container cannot respond to requests from the host
+        if [ -n "$ORIGINAL_DEV" ]; then
+            # Get the Docker network CIDR from the eth0 interface
+            DOCKER_NET=$(ip addr show "$ORIGINAL_DEV" 2>/dev/null | grep 'inet ' | awk '{print $2}')
+            if [ -n "$DOCKER_NET" ]; then
+                # Extract network address (e.g., 172.18.0.6/16 -> we need to route 172.18.0.0/16)
+                # Add explicit route for the Docker bridge network
+                ip route add "${DOCKER_NET%.*}.0/16" dev "$ORIGINAL_DEV" 2>/dev/null || true
+                log "Preserved Docker network route: ${DOCKER_NET%.*}.0/16 via $ORIGINAL_DEV"
+            fi
+        fi
+        
+        # Step 4: Delete old default route(s) through physical interface
         # This is the key fix - remove competing routes
         ip route del default via "$ORIGINAL_GW" 2>/dev/null || true
         log "Deleted original default route via $ORIGINAL_GW"
         
-        # Step 4: Add new default route through VPN tunnel
+        # Step 5: Add new default route through VPN tunnel
         ip route add default dev "$TUNDEV" 2>/dev/null || true
         log "Added default route via $TUNDEV (VPN tunnel)"
         
