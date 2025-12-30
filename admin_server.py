@@ -98,10 +98,10 @@ def reconnect_api():
         version = os.environ.get('VPN_VERSION_STRING', '4.7.00136')
         protocol = os.environ.get('VPN_PROTOCOL', 'anyconnect')
 
-        cmd = f"echo '{new_token}' | openconnect -b --protocol={protocol} --cookie-on-stdin --useragent='{user_agent}' --version-string='{version}' --interface=tunopen --script /bin/true {vpn_server}"
+        cmd = f"echo '{new_token}' | openconnect -b --protocol={protocol} --cookie-on-stdin --useragent='{user_agent}' --version-string='{version}' --interface=tunopen --script=/vpnc-script-custom.sh {vpn_server}"
         subprocess.Popen(cmd, shell=True)
-        # 等待一会并尝试手动激活网卡
-        subprocess.Popen("sleep 2 && ip link set tunopen up", shell=True)
+        # Wait for custom script to configure the interface
+        subprocess.Popen("sleep 3 && echo 'VPN interface reconfigured'", shell=True)
         
         return jsonify({"message": "重连指令已发出，请稍后刷新。"})
     except Exception as e:

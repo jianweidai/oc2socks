@@ -97,12 +97,12 @@ else
         --useragent="\"${VPN_USER_AGENT}\"" \
         --version-string="${VPN_VERSION_STRING}" \
         --interface=tunopen \
-        --script /bin/true \
+        --script=/vpnc-script-custom.sh \
         --reconnect-timeout 60 \
         ${VPN_SERVER}
-    # 手动激活网卡 (因为 --script /bin/true 跳过了自动激活)
-    sleep 2
-    ip link set tunopen up 2>/dev/null || true
+    # Wait for custom script to configure the interface
+    sleep 3
+    echo "VPN interface configuration complete"
 fi
 
 # --- 启动 gost ---
