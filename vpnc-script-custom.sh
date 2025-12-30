@@ -26,19 +26,35 @@ case "$reason" in
         ip link set "$TUNDEV" up
         log "Interface $TUNDEV is UP"
         
+        # Function to convert netmask to CIDR
+        netmask_to_cidr() {
+            local mask=$1
+            local cidr=0
+            local IFS='.'
+            read -r o1 o2 o3 o4 <<< "$mask"
+            for octet in $o1 $o2 $o3 $o4; do
+                case $octet in
+                    255) cidr=$((cidr + 8));;
+                    254) cidr=$((cidr + 7));;
+                    252) cidr=$((cidr + 6));;
+                    248) cidr=$((cidr + 5));;
+                    240) cidr=$((cidr + 4));;
+                    224) cidr=$((cidr + 3));;
+                    192) cidr=$((cidr + 2));;
+                    128) cidr=$((cidr + 1));;
+                    0) ;;
+                    *) log "Warning: Invalid netmask octet: $octet";;
+                esac
+            done
+            echo $cidr
+        }
+        
         # Configure IPv4 address if provided
         if [ -n "$INTERNAL_IP4_ADDRESS" ]; then
             # Calculate netmask (default to /32 if not provided)
             if [ -n "$INTERNAL_IP4_NETMASK" ]; then
-                # Convert netmask to CIDR
-                CIDR=$(echo "$INTERNAL_IP4_NETMASK" | awk -F. '{
-                    split($0,a,".");
-                    for(i=1;i<=4;i++){
-                        c+=sprintf("%08d", int(a[i]));
-                    }
-                    gsub(/0/, "", c);
-                    print length(c)
-                }')
+                CIDR=$(netmask_to_cidr "$INTERNAL_IP4_NETMASK")
+                log "Netmask $INTERNAL_IP4_NETMASK -> CIDR /$CIDR"
             else
                 CIDR=32
             fi
@@ -54,19 +70,28 @@ case "$reason" in
             log "Configured IPv6: $INTERNAL_IP6_ADDRESS/$CIDR6"
         fi
         
-        # Add routes for VPN network
-        # DO NOT set default route - we want split tunneling
+        # Log all environment variables for debugging
+        log "INTERNAL_IP4_ADDRESS=$INTERNAL_IP4_ADDRESS"
+        log "INTERNAL_IP4_NETMASK=$INTERNAL_IP4_NETMASK"
+        log "INTERNAL_IP4_NETMASKLEN=$INTERNAL_IP4_NETMASKLEN"
+        log "INTERNAL_IP4_DNS=$INTERNAL_IP4_DNS"
+        log "VPNGATEWAY=$VPNGATEWAY"
+        log "CISCO_SPLIT_INC=$CISCO_SPLIT_INC"
         
+        # Add routes for VPN network
         # Route the VPN internal network through the tunnel
         if [ -n "$INTERNAL_IP4_ADDRESS" ] && [ -n "$INTERNAL_IP4_NETMASK" ]; then
+            # Calculate CIDR for route (use the same function)
+            ROUTE_CIDR=$(netmask_to_cidr "$INTERNAL_IP4_NETMASK")
+            
             # Get the network address
             IFS='.' read -r i1 i2 i3 i4 <<< "$INTERNAL_IP4_ADDRESS"
             IFS='.' read -r m1 m2 m3 m4 <<< "$INTERNAL_IP4_NETMASK"
             NETWORK="$((i1 & m1)).$((i2 & m2)).$((i3 & m3)).$((i4 & m4))"
             
             # Add route for the VPN network
-            ip route add "$NETWORK/$CIDR" dev "$TUNDEV" 2>/dev/null || true
-            log "Added route for network: $NETWORK/$CIDR"
+            ip route add "$NETWORK/$ROUTE_CIDR" dev "$TUNDEV" 2>/dev/null || true
+            log "Added route for VPN network: $NETWORK/$ROUTE_CIDR"
         fi
         
         # Add split tunnel routes if provided by the server
