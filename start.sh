@@ -65,7 +65,7 @@ echo "Firewall rules configured. VPN tunnel traffic allowed, physical NIC traffi
 
 # --- 进程管理 ---
 # 设置 trap 以在接收到 SIGTERM 或 SIGINT 时优雅地关闭子进程
-trap 'kill -TERM $PID_ADMIN $PID_GOST' TERM INT
+trap 'kill -TERM $PID_ADMIN $PID_GOST $PID_KEEPALIVE 2>/dev/null' TERM INT
 
 # --- 启动 Admin Server (后台运行) ---
 echo "Starting Admin Server on port 8989..."
@@ -111,5 +111,10 @@ echo "Starting gost on port ${SOCKS_PORT}..."
 gost -L "socks5://:${SOCKS_PORT}" &
 PID_GOST=$!
 
+# --- 启动保活脚本 ---
+echo "Starting keepalive script..."
+/keepalive.sh &
+PID_KEEPALIVE=$!
+
 # 等待进程
-wait $PID_ADMIN $PID_GOST
+wait $PID_ADMIN $PID_GOST $PID_KEEPALIVE

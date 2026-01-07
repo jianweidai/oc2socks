@@ -1,0 +1,28 @@
+services:
+  oc2socks:
+    image: errmercruz/oc2socks:latest
+    pull_policy: always
+    # 关键：添加网络管理权限
+    cap_add:
+      - NET_ADMIN
+    # 关键：映射网卡设备
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - "1180:1180"
+      - "8989:8989"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    environment:
+      - VPN_SERVER=vpn.example.com  # 替换为你的 VPN 服务器地址
+      - ADMIN_KEY=your_secret_key   # 替换为你的管理后台密钥
+      - KEEPALIVE_INTERVAL=60       # 保活间隔（秒），防止 VPN 空闲断连
+    volumes:
+      - oc2socks_data:/data
+    restart: always
+
+volumes:
+  oc2socks_data:

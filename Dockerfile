@@ -15,7 +15,8 @@ RUN apk update && \
     bash \
     python3 \
     py3-pip \
-    iptables
+    iptables \
+    bind-tools  # 提供 nslookup 命令用于保活
 
 # 安装 Flask 后端依赖
 RUN pip install --no-cache-dir --break-system-packages flask
@@ -31,11 +32,12 @@ RUN curl -L "https://github.com/ginuerzh/gost/releases/download/v${GOST_VERSION}
 # 复制文件与模板
 COPY start.sh /start.sh
 COPY vpnc-script-custom.sh /vpnc-script-custom.sh
+COPY keepalive.sh /keepalive.sh
 COPY admin_server.py /admin_server.py
 COPY templates/ /templates/
 
 # 创建数据目录用于持久化 Token，并设置脚本可执行权限
-RUN mkdir -p /data && chmod +x /start.sh && chmod +x /vpnc-script-custom.sh
+RUN mkdir -p /data && chmod +x /start.sh && chmod +x /vpnc-script-custom.sh && chmod +x /keepalive.sh
 
 # 暴露 SOCKS5 代理端口 (1180) 和管理后台端口 (8989)
 EXPOSE 1180 8989

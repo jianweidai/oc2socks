@@ -11,6 +11,7 @@ venv/
 sjsu_run.sh
 *.token
 *.cookie
+docker-compose.yml  # 包含个人密钥，使用 docker-compose.example.yml 作为模板
 
 # IDE 与 编辑器
 .vscode/
