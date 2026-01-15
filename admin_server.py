@@ -129,5 +129,35 @@ def disconnect_api():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/reconnect-last', methods=['POST'])
+def reconnect_last_api():
+    """使用上次保存的 Token 重新连接 VPN"""
+    key = request.args.get('key')
+    if key != ADMIN_KEY:
+        return jsonify({"error": "unauthorized"}), 403
+    
+    # 获取已保存的 Token
+    saved_token = get_current_token()
+    if not saved_token:
+        return jsonify({"error": "没有找到已保存的 Token，请手动输入。"}), 400
+
+    try:
+        # 尝试杀死可能存在的旧进程
+        subprocess.run(["pkill", "openconnect"])
+        
+        vpn_server = os.environ.get('VPN_SERVER')
+        user_agent = os.environ.get('VPN_USER_AGENT', 'AnyConnect Linux_64 4.7.00136')
+        version = os.environ.get('VPN_VERSION_STRING', '4.7.00136')
+        protocol = os.environ.get('VPN_PROTOCOL', 'anyconnect')
+
+        cmd = f"echo '{saved_token}' | openconnect -b --protocol={protocol} --cookie-on-stdin --useragent='{user_agent}' --version-string='{version}' --interface=tunopen --script=/vpnc-script-custom.sh {vpn_server}"
+        subprocess.Popen(cmd, shell=True)
+        # Wait for custom script to configure the interface
+        subprocess.Popen("sleep 3 && echo 'VPN interface reconfigured'", shell=True)
+        
+        return jsonify({"message": "正在使用上次的 Token 重连，请稍后刷新。"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8989)

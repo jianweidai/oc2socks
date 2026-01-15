@@ -14,17 +14,24 @@ echo "[keepalive] Starting keepalive loop with ${KEEPALIVE_INTERVAL}s interval"
 while true; do
     # 检查 VPN 接口是否存在
     if [ -d "/sys/class/net/tunopen" ]; then
-        # 方法1: 通过 VPN 接口发送 DNS 查询（轻量级流量）
-        # 使用 VPN 分配的 DNS 或 Google DNS
-        nslookup google.com > /dev/null 2>&1
+        # 真实 HTTP 请求：访问 Google 的轻量级 204 页面
+        # 这比 DNS 查询更能模拟真实用户流量，有效防止被踢下线
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --interface tunopen --max-time 10 https://www.gstatic.com/generate_204 2>/dev/null)
         
-        # 方法2: 尝试 curl 一个轻量级的页面（如果 nslookup 不可用）
-        # curl -s --interface tunopen --max-time 5 https://www.gstatic.com/generate_204 > /dev/null 2>&1
-        
-        # 方法3: 直接 ping VPN 网关（如果知道内部 IP）
-        # ping -c 1 -W 5 -I tunopen <内部网关IP> > /dev/null 2>&1
-        
-        echo "[keepalive] $(date '+%Y-%m-%d %H:%M:%S') - Heartbeat sent"
+        if [ "$HTTP_CODE" = "204" ]; then
+            echo "[keepalive] $(date '+%Y-%m-%d %H:%M:%S') - HTTP heartbeat OK (204)"
+        elif [ -n "$HTTP_CODE" ] && [ "$HTTP_CODE" != "000" ]; then
+            echo "[keepalive] $(date '+%Y-%m-%d %H:%M:%S') - HTTP response: $HTTP_CODE (expected 204)"
+        else
+            # HTTP 请求失败，回退到 DNS 查询作为备用方案
+            echo "[keepalive] $(date '+%Y-%m-%d %H:%M:%S') - HTTP failed, trying DNS fallback..."
+            nslookup google.com > /dev/null 2>&1
+            if [ $? -eq 0 ]; then
+                echo "[keepalive] $(date '+%Y-%m-%d %H:%M:%S') - DNS heartbeat OK"
+            else
+                echo "[keepalive] $(date '+%Y-%m-%d %H:%M:%S') - DNS heartbeat failed"
+            fi
+        fi
     else
         echo "[keepalive] $(date '+%Y-%m-%d %H:%M:%S') - VPN interface not found, skipping..."
     fi
